@@ -29,26 +29,32 @@ func main() {
 			Value: 1,
 		},
 	}
-	// we create our commands
+	// create commands
 	app.Commands = []*cli.Command{
 		{
 			Name:  "runTool",
 			Usage: "Provides JSON Object containing links",
 			Flags: requestFlags,
+
 			// the action, or code that will be executed when
-			// we execute our `getLinks` command
+			// we execute our `runTool` command
 			Action: func(c *cli.Context) error {
+
+				//check if flag is `profile`
 				if os.Args[2] == "--profile" {
 					var success = int64(0)
 					var fastest_time = make([]time.Duration, c.Int(os.Args[3]))
 					var slowest_time = make([]time.Duration, c.Int(os.Args[3]))
 					var mean_time = make([]time.Duration, c.Int(os.Args[3]))
+
+					//ping the url specified in the console
 					pinger, err := ping.NewPinger(c.String("url"))
 					if err != nil {
 						fmt.Printf("ERROR: %s\n", err.Error())
 						return nil
 					}
 
+					//returns ping statistics on successful ping
 					pinger.OnFinish = func(stats *ping.Statistics) {
 						success++
 						fastest_time = append(fastest_time, stats.MinRtt)
@@ -58,14 +64,16 @@ func main() {
 					}
 
 					pinger.Count = 1
-
 					pinger.Interval = time.Second
 					pinger.Timeout = time.Second * 100000
 					pinger.SetPrivileged(true)
 
 					fmt.Printf("PING %s (%s):\n", pinger.Addr(), pinger.IPAddr())
 
-					val, err := strconv.ParseInt(os.Args[3], 10, 64)
+					//positive integer accepting the number of requests is stored in `val`
+					val, err := strconv.ParseInt(os.Args[3], 10, 64) //conversion of hex to int
+
+					//pinger runs number of times specified in the command prompt
 					for i := int64(0); i < val; i++ {
 						err = pinger.Run()
 					}
@@ -93,6 +101,8 @@ func main() {
 					if err != nil {
 						fmt.Printf("Failed to ping target host: %s", err)
 					}
+
+					//check if flag is `url`
 				} else if os.Args[2] == "--url" {
 					s := c.String("url")
 					u, err := url.Parse(s)
@@ -100,11 +110,13 @@ func main() {
 						log.Fatal(err)
 					}
 
+					//establishing tcp connection with port 80
 					conn, err := net.Dial("tcp", u.Host+":80")
 					if err != nil {
 						log.Fatal(err)
 					}
 
+					//setting http request header
 					rt := fmt.Sprintf("GET %v HTTP/1.1\r\n", u.Path)
 					rt += fmt.Sprintf("Host: %v\r\n", u.Host)
 					rt += fmt.Sprintf("Connection: close\r\n")
@@ -121,6 +133,7 @@ func main() {
 					}
 					fmt.Println(string(resp))
 
+					//close connection
 					conn.Close()
 					return nil
 				}
